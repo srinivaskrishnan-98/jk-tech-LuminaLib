@@ -61,6 +61,9 @@ class ReviewService:
         )
         review = await self.review_repo.create(review)
 
+        # Commit to ensure review is available for background task
+        await self.session.commit()
+
         # Trigger async consensus update
         self.background_tasks.add_task(update_review_consensus, book_id)
 

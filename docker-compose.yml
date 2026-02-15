@@ -14,6 +14,8 @@ services:
         condition: service_healthy
       minio:
         condition: service_healthy
+      ollama-pull:
+        condition: service_completed_successfully
     volumes:
       - upload_data:/app/uploads
     restart: unless-stopped
@@ -59,9 +61,23 @@ services:
       - "11434:11434"
     volumes:
       - ollama_data:/root/.ollama
-    profiles:
-      - llm
+    healthcheck:
+      test: ["CMD-SHELL", "ollama list || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 15s
     restart: unless-stopped
+
+  ollama-pull:
+    image: ollama/ollama:latest
+    depends_on:
+      ollama:
+        condition: service_healthy
+    entrypoint: ["sh", "-c", "ollama pull llama3.2"]
+    environment:
+      - OLLAMA_HOST=http://ollama:11434
+    restart: "no"
 
 volumes:
   pg_data:
