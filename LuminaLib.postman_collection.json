@@ -1,0 +1,535 @@
+{
+	"info": {
+		"name": "LuminaLib API",
+		"description": "Complete API collection for LuminaLib - Intelligent Library System",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+	},
+	"item": [
+		{
+			"name": "1. Authentication",
+			"item": [
+				{
+					"name": "Signup",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"if (pm.response.code === 200) {",
+									"    var jsonData = pm.response.json();",
+									"    pm.collectionVariables.set('user_id', jsonData.id);",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"auth": {
+							"type": "noauth"
+						},
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"email\": \"john.doe@example.com\",\n    \"username\": \"johndoe\",\n    \"password\": \"SecurePass123\",\n    \"full_name\": \"John Doe\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/auth/signup",
+							"host": ["{{base_url}}"],
+							"path": ["auth", "signup"]
+						}
+					}
+				},
+				{
+					"name": "Login",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"if (pm.response.code === 200) {",
+									"    var jsonData = pm.response.json();",
+									"    pm.collectionVariables.set('access_token', jsonData.access_token);",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"auth": {
+							"type": "noauth"
+						},
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/x-www-form-urlencoded"
+							}
+						],
+						"body": {
+							"mode": "urlencoded",
+							"urlencoded": [
+								{
+									"key": "username",
+									"value": "john.doe@example.com"
+								},
+								{
+									"key": "password",
+									"value": "SecurePass123"
+								}
+							]
+						},
+						"url": {
+							"raw": "{{base_url}}/auth/login",
+							"host": ["{{base_url}}"],
+							"path": ["auth", "login"]
+						}
+					}
+				},
+				{
+					"name": "Get Profile",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{access_token}}"
+								}
+							]
+						},
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/auth/profile",
+							"host": ["{{base_url}}"],
+							"path": ["auth", "profile"]
+						}
+					}
+				},
+				{
+					"name": "Update Profile",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{access_token}}"
+								}
+							]
+						},
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"full_name\": \"John Doe Updated\",\n    \"preferred_genres\": [\"Science Fiction\", \"Mystery\", \"Fantasy\"],\n    \"preferred_authors\": [\"Isaac Asimov\", \"Agatha Christie\"]\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/auth/profile",
+							"host": ["{{base_url}}"],
+							"path": ["auth", "profile"]
+						}
+					}
+				},
+				{
+					"name": "Signout",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{access_token}}"
+								}
+							]
+						},
+						"method": "POST",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/auth/signout",
+							"host": ["{{base_url}}"],
+							"path": ["auth", "signout"]
+						}
+					}
+				}
+			]
+		},
+		{
+			"name": "2. Books",
+			"item": [
+				{
+					"name": "Create Book with File",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"if (pm.response.code === 200) {",
+									"    var jsonData = pm.response.json();",
+									"    pm.collectionVariables.set('book_id', jsonData.id);",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{access_token}}"
+								}
+							]
+						},
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "formdata",
+							"formdata": [
+								{
+									"key": "title",
+									"value": "The Hitchhiker's Guide to the Galaxy"
+								},
+								{
+									"key": "author",
+									"value": "Douglas Adams"
+								},
+								{
+									"key": "genre",
+									"value": "Science Fiction"
+								},
+								{
+									"key": "isbn",
+									"value": "978-0-345-39180-3"
+								},
+								{
+									"key": "description",
+									"value": "A comedic science fiction series"
+								},
+								{
+									"key": "total_copies",
+									"value": "10"
+								},
+								{
+									"key": "file",
+									"type": "file",
+									"src": []
+								}
+							]
+						},
+						"url": {
+							"raw": "{{base_url}}/books",
+							"host": ["{{base_url}}"],
+							"path": ["books"]
+						}
+					}
+				},
+				{
+					"name": "List Books",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{access_token}}"
+								}
+							]
+						},
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/books?page=1&limit=10",
+							"host": ["{{base_url}}"],
+							"path": ["books"],
+							"query": [
+								{
+									"key": "page",
+									"value": "1"
+								},
+								{
+									"key": "limit",
+									"value": "10"
+								}
+							]
+						}
+					}
+				},
+				{
+					"name": "Get Book by ID",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{access_token}}"
+								}
+							]
+						},
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/books/{{book_id}}",
+							"host": ["{{base_url}}"],
+							"path": ["books", "{{book_id}}"]
+						}
+					}
+				},
+				{
+					"name": "Update Book",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{access_token}}"
+								}
+							]
+						},
+						"method": "PUT",
+						"header": [],
+						"body": {
+							"mode": "formdata",
+							"formdata": [
+								{
+									"key": "title",
+									"value": "Updated Book Title"
+								},
+								{
+									"key": "description",
+									"value": "Updated description"
+								}
+							]
+						},
+						"url": {
+							"raw": "{{base_url}}/books/{{book_id}}",
+							"host": ["{{base_url}}"],
+							"path": ["books", "{{book_id}}"]
+						}
+					}
+				},
+				{
+					"name": "Delete Book",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{access_token}}"
+								}
+							]
+						},
+						"method": "DELETE",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/books/{{book_id}}",
+							"host": ["{{base_url}}"],
+							"path": ["books", "{{book_id}}"]
+						}
+					}
+				}
+			]
+		},
+		{
+			"name": "3. Borrowing",
+			"item": [
+				{
+					"name": "Borrow Book",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{access_token}}"
+								}
+							]
+						},
+						"method": "POST",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/books/{{book_id}}/borrow",
+							"host": ["{{base_url}}"],
+							"path": ["books", "{{book_id}}", "borrow"]
+						}
+					}
+				},
+				{
+					"name": "Return Book",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{access_token}}"
+								}
+							]
+						},
+						"method": "POST",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/books/{{book_id}}/return",
+							"host": ["{{base_url}}"],
+							"path": ["books", "{{book_id}}", "return"]
+						}
+					}
+				}
+			]
+		},
+		{
+			"name": "4. Reviews",
+			"item": [
+				{
+					"name": "Submit Review (Positive)",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{access_token}}"
+								}
+							]
+						},
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"rating\": 5,\n    \"review_text\": \"An absolutely brilliant book! The writing is witty and the characters are memorable. A must-read for any sci-fi fan.\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/books/{{book_id}}/reviews",
+							"host": ["{{base_url}}"],
+							"path": ["books", "{{book_id}}", "reviews"]
+						}
+					}
+				},
+				{
+					"name": "Submit Review (Negative)",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{access_token}}"
+								}
+							]
+						},
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"rating\": 2,\n    \"review_text\": \"Disappointing read. The plot was confusing and not what I expected.\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/books/{{book_id}}/reviews",
+							"host": ["{{base_url}}"],
+							"path": ["books", "{{book_id}}", "reviews"]
+						}
+					}
+				},
+				{
+					"name": "Get Book Analysis",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{access_token}}"
+								}
+							]
+						},
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/books/{{book_id}}/analysis",
+							"host": ["{{base_url}}"],
+							"path": ["books", "{{book_id}}", "analysis"]
+						}
+					}
+				}
+			]
+		},
+		{
+			"name": "5. Recommendations",
+			"item": [
+				{
+					"name": "Get Recommendations",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{access_token}}"
+								}
+							]
+						},
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/recommendations?limit=5",
+							"host": ["{{base_url}}"],
+							"path": ["recommendations"],
+							"query": [
+								{
+									"key": "limit",
+									"value": "5"
+								}
+							]
+						}
+					}
+				}
+			]
+		}
+	],
+	"variable": [
+		{
+			"key": "base_url",
+			"value": "http://localhost:8000"
+		},
+		{
+			"key": "access_token",
+			"value": ""
+		},
+		{
+			"key": "user_id",
+			"value": ""
+		},
+		{
+			"key": "book_id",
+			"value": ""
+		}
+	]
+}

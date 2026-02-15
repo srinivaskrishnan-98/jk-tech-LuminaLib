@@ -5,9 +5,9 @@ from fastapi import BackgroundTasks
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.exceptions import (
-    AlreadyReviewedException,
-    BookNotFoundException,
-    MustBorrowBeforeReviewException,
+    AlreadyReviewedError,
+    BookNotFoundError,
+    MustBorrowBeforeReviewError,
 )
 from app.models.book import Book
 from app.models.borrow import Borrow
@@ -55,7 +55,7 @@ class TestReviewService:
         service = ReviewService(db_session, BackgroundTasks())
         data = ReviewCreate(rating=4, review_text="This is a great book that I enjoyed!")
 
-        with pytest.raises(MustBorrowBeforeReviewException):
+        with pytest.raises(MustBorrowBeforeReviewError):
             await service.submit_review(test_user.id, book.id, data)
 
     async def test_duplicate_review_raises(self, db_session: AsyncSession, test_user) -> None:
@@ -66,14 +66,14 @@ class TestReviewService:
         data = ReviewCreate(rating=5, review_text="First review of this wonderful book!")
 
         await service.submit_review(test_user.id, book.id, data)
-        with pytest.raises(AlreadyReviewedException):
+        with pytest.raises(AlreadyReviewedError):
             await service.submit_review(test_user.id, book.id, data)
 
     async def test_review_nonexistent_book_raises(self, db_session: AsyncSession, test_user) -> None:
         service = ReviewService(db_session, BackgroundTasks())
         data = ReviewCreate(rating=3, review_text="This book was okay I suppose.")
 
-        with pytest.raises(BookNotFoundException):
+        with pytest.raises(BookNotFoundError):
             await service.submit_review(test_user.id, uuid4(), data)
 
     async def test_get_book_analysis(self, db_session: AsyncSession, test_user) -> None:

@@ -5,7 +5,7 @@ import pytest
 from fastapi import BackgroundTasks
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.core.exceptions import BookNotFoundException, UnsupportedFileTypeException
+from app.core.exceptions import BookNotFoundError, UnsupportedFileTypeError
 from app.models.book import Book
 from app.schemas.book import BookCreate, BookUpdate
 from app.services.book_service import BookService
@@ -63,7 +63,7 @@ class TestBookServiceCreate:
         data = BookCreate(title="Bad Book", author="Author", genre="Fiction")
         file_content = io.BytesIO(b"fake content")
 
-        with pytest.raises(UnsupportedFileTypeException):
+        with pytest.raises(UnsupportedFileTypeError):
             await service.create_book(
                 data=data,
                 file_content=file_content,
@@ -79,7 +79,7 @@ class TestBookServiceRead:
         bg_tasks = BackgroundTasks()
         service = BookService(db_session, storage, bg_tasks)
 
-        with pytest.raises(BookNotFoundException):
+        with pytest.raises(BookNotFoundError):
             await service.get_book(uuid4())
 
     async def test_list_books_returns_paginated(self, db_session: AsyncSession) -> None:
@@ -133,7 +133,7 @@ class TestBookServiceUpdate:
         bg_tasks = BackgroundTasks()
         service = BookService(db_session, storage, bg_tasks)
 
-        with pytest.raises(BookNotFoundException):
+        with pytest.raises(BookNotFoundError):
             await service.update_book(uuid4(), BookUpdate(title="New"))
 
 
@@ -159,5 +159,5 @@ class TestBookServiceDelete:
 
         await service.delete_book(book.id)
 
-        with pytest.raises(BookNotFoundException):
+        with pytest.raises(BookNotFoundError):
             await service.get_book(book.id)

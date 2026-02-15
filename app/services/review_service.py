@@ -5,9 +5,9 @@ from fastapi import BackgroundTasks
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.exceptions import (
-    AlreadyReviewedException,
-    BookNotFoundException,
-    MustBorrowBeforeReviewException,
+    AlreadyReviewedError,
+    BookNotFoundError,
+    MustBorrowBeforeReviewError,
 )
 from app.models.review import Review
 from app.repositories.book_repository import BookRepository
@@ -40,17 +40,17 @@ class ReviewService:
         # Verify book exists
         book = await self.book_repo.get_by_id(book_id)
         if not book:
-            raise BookNotFoundException(book_id)
+            raise BookNotFoundError(book_id)
 
         # Enforce: must have borrowed the book
         has_borrowed = await self.borrow_repo.has_ever_borrowed(user_id, book_id)
         if not has_borrowed:
-            raise MustBorrowBeforeReviewException()
+            raise MustBorrowBeforeReviewError()
 
         # Enforce: one review per user per book
         existing = await self.review_repo.get_by_user_and_book(user_id, book_id)
         if existing:
-            raise AlreadyReviewedException()
+            raise AlreadyReviewedError()
 
         # Create review
         review = Review(
@@ -76,7 +76,7 @@ class ReviewService:
         """Get GenAI-aggregated review analysis for a book."""
         book = await self.book_repo.get_by_id(book_id)
         if not book:
-            raise BookNotFoundException(book_id)
+            raise BookNotFoundError(book_id)
 
         total_reviews = await self.review_repo.count_for_book(book_id)
         avg_rating = await self.review_repo.get_average_rating(book_id)

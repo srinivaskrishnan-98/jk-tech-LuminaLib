@@ -6,10 +6,10 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.config import Settings
 from app.core.exceptions import (
-    InvalidCredentialsException,
-    TokenRevokedException,
-    UnauthorizedException,
-    UserAlreadyExistsException,
+    InvalidCredentialsError,
+    TokenRevokedError,
+    UnauthorizedError,
+    UserAlreadyExistsError,
 )
 from app.core.security import (
     create_access_token,
@@ -49,9 +49,9 @@ class AuthService:
         logger.info("signup_attempt", email=data.email, username=data.username)
 
         if await self.user_repo.email_exists(data.email):
-            raise UserAlreadyExistsException("email")
+            raise UserAlreadyExistsError("email")
         if await self.user_repo.username_exists(data.username):
-            raise UserAlreadyExistsException("username")
+            raise UserAlreadyExistsError("username")
 
         user = User(
             email=data.email,
@@ -79,10 +79,10 @@ class AuthService:
 
         user = await self.user_repo.get_by_email(data.email)
         if not user or not verify_password(data.password, user.hashed_password):
-            raise InvalidCredentialsException()
+            raise InvalidCredentialsError()
 
         if not user.is_active:
-            raise UnauthorizedException("Account is deactivated")
+            raise UnauthorizedError("Account is deactivated")
 
         token, _jti, _expires = create_access_token(
             subject=str(user.id), settings=self.settings
@@ -98,7 +98,7 @@ class AuthService:
         exp = payload.get("exp")
 
         if not jti or not exp:
-            raise UnauthorizedException("Invalid token structure")
+            raise UnauthorizedError("Invalid token structure")
 
         blacklisted = BlacklistedToken(
             token_jti=jti,
@@ -112,7 +112,7 @@ class AuthService:
         """Get user profile with preferences."""
         user = await self.user_repo.get_by_id(user_id)
         if not user:
-            raise UnauthorizedException("User not found")
+            raise UnauthorizedError("User not found")
 
         preference = await self.pref_repo.get_by_user_id(user_id)
         return self._build_profile_response(user, preference)
@@ -123,7 +123,7 @@ class AuthService:
         """Update user profile and/or preferences."""
         user = await self.user_repo.get_by_id(user_id)
         if not user:
-            raise UnauthorizedException("User not found")
+            raise UnauthorizedError("User not found")
 
         if data.full_name is not None:
             user.full_name = data.full_name
@@ -146,15 +146,15 @@ class AuthService:
         jti = payload.get("jti")
 
         if jti and await self.token_repo.is_blacklisted(jti):
-            raise TokenRevokedException()
+            raise TokenRevokedError()
 
         user_id = payload.get("sub")
         if not user_id:
-            raise UnauthorizedException("Invalid token: missing subject")
+            raise UnauthorizedError("Invalid token: missing subject")
 
         user = await self.user_repo.get_by_id(UUID(user_id))
         if not user or not user.is_active:
-            raise UnauthorizedException("User not found or inactive")
+            raise UnauthorizedError("User not found or inactive")
 
         return user
 

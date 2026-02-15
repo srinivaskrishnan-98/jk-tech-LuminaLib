@@ -5,7 +5,7 @@ from jose import JWTError, jwt
 from passlib.context import CryptContext
 
 from app.config import Settings
-from app.core.exceptions import UnauthorizedException
+from app.core.exceptions import UnauthorizedError
 
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
@@ -52,7 +52,7 @@ def decode_access_token(token: str, settings: Settings) -> dict:
     """Decode and validate a JWT access token.
 
     Raises:
-        UnauthorizedException: If the token is invalid or expired.
+        UnauthorizedError: If the token is invalid or expired.
     """
     try:
         payload = jwt.decode(
@@ -61,7 +61,7 @@ def decode_access_token(token: str, settings: Settings) -> dict:
             algorithms=[settings.JWT_ALGORITHM],
         )
         if payload.get("sub") is None:
-            raise UnauthorizedException("Invalid token: missing subject")
+            raise UnauthorizedError("Invalid token: missing subject")
         return payload
     except JWTError as e:
-        raise UnauthorizedException(f"Invalid token: {e}") from e
+        raise UnauthorizedError(f"Invalid token: {e}") from e
