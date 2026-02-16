@@ -187,7 +187,7 @@ python3 add_real_books.py
 - Covers 8 genres: Science Fiction, Fantasy, Mystery, Historical Fiction, Romance, Adventure, Horror, Literary Fiction
 
 **Expected timeline:**
-- With optimizations: 10-30 minutes for all 20 books
+- All 20 books: 10-30 minutes
 - Each book: 30 seconds to 4 minutes depending on size
 - Monitor progress: `docker compose logs -f api | grep summarization`
 
@@ -371,13 +371,9 @@ Request → Route (api/) → Controller (controllers/) → Service (services/) �
 ### 🤖 AI-Powered Summarization
 
 - **Automatic book summaries** using Llama 3.2 via Ollama
-- **Smart text sampling** for large books (samples beginning, middle, and end)
-- **Retry logic** with exponential backoff (handles timeouts gracefully)
-- **Streaming API** to avoid server timeouts
-- **Parallel processing** (4 concurrent summaries)
+- Intelligent text extraction from PDF, TXT, and EPUB files
 - Background task processing with status tracking
-
-See [OPTIMIZATION_GUIDE.md](OPTIMIZATION_GUIDE.md) for performance details.
+- Supports concurrent summarization of multiple books
 
 ### 🎯 ML-Based Recommendations
 
@@ -526,9 +522,8 @@ docker compose logs api
    ```bash
    docker compose exec ollama ollama pull llama3.2:1b  # 3x faster
    # Update .env: OLLAMA_MODEL=llama3.2:1b
+   docker compose restart api
    ```
-
-5. **Increase timeout**: See [OPTIMIZATION_GUIDE.md](OPTIMIZATION_GUIDE.md)
 
 ### Bcrypt Version Error
 
@@ -584,28 +579,6 @@ docker compose down -v
 docker compose up -d
 ```
 
-## Performance Optimizations
-
-### LLM Summarization (Implemented)
-
-✅ **Smart text sampling**: Analyzes 3.3x more content (10K chars vs 3K)
-✅ **Retry logic**: 3 attempts with exponential backoff (5s, 10s, 20s)
-✅ **Streaming API**: Avoids server timeouts on large books
-✅ **Parallel processing**: 4 concurrent summaries (OLLAMA_NUM_PARALLEL=4)
-✅ **Optimized parameters**: Faster generation (num_predict: 800, temperature: 0.5)
-
-**Result**: 25-37% failure rate → ~0% failure rate
-**Timeline**: 20 books in 10-30 minutes (was 30-60 minutes with failures)
-
-See [OPTIMIZATION_GUIDE.md](OPTIMIZATION_GUIDE.md) for detailed metrics and further tuning options.
-
-### Recommendation Engine
-
-- **Caching**: User preferences cached in database (genre_weights)
-- **Batch operations**: Single query for all book similarities
-- **Smart sampling**: Only compute similarities for eligible books (not borrowed, available)
-- **Strategy fallback**: Fast fallback to popular books if no personalized recommendations
-
 ## Monitoring
 
 ### View Logs
@@ -647,49 +620,8 @@ docker compose exec api python -c "from app.core.database import engine; print('
 curl http://localhost:9000/minio/health/live
 ```
 
-## Production Considerations
-
-### Security
-
-- [ ] Change `JWT_SECRET_KEY` to a strong random value
-- [ ] Use strong database passwords (not default `postgres`)
-- [ ] Enable HTTPS with reverse proxy (nginx/traefik)
-- [ ] Set `ALLOWED_ORIGINS` for CORS
-- [ ] Use secrets management (not .env files)
-
-### Scalability
-
-- [ ] Use managed PostgreSQL (AWS RDS, Cloud SQL)
-- [ ] Use S3-compatible storage (AWS S3, not MinIO)
-- [ ] Consider GPU for Ollama (10-50x faster summarization)
-- [ ] Use Celery/Redis for background tasks (instead of FastAPI BackgroundTasks)
-- [ ] Add rate limiting and request throttling
-
-### Monitoring
-
-- [ ] Add APM (Application Performance Monitoring)
-- [ ] Set up error tracking (Sentry)
-- [ ] Configure log aggregation (ELK, Datadog)
-- [ ] Add metrics (Prometheus + Grafana)
-
-## License
-
-MIT License - see LICENSE file for details
-
-## Contributing
-
-1. Fork the repository
-2. Create a feature branch (`git checkout -b feature/amazing-feature`)
-3. Make your changes
-4. Run tests (`pytest -v`)
-5. Run linter (`ruff check . && ruff format .`)
-6. Commit changes (`git commit -m 'Add amazing feature'`)
-7. Push to branch (`git push origin feature/amazing-feature`)
-8. Open a Pull Request
-
 ## Support
 
 - **Documentation**: See [ARCHITECTURE.md](ARCHITECTURE.md) for system design
-- **Optimizations**: See [OPTIMIZATION_GUIDE.md](OPTIMIZATION_GUIDE.md) for performance tuning
 - **Issues**: Open an issue on GitHub
 - **Questions**: Contact the maintainers
