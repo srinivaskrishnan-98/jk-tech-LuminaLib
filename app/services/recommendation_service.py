@@ -113,6 +113,16 @@ class RecommendationService:
         # Compute cosine similarity
         similarities = cosine_similarity([user_profile], tfidf_matrix.toarray())[0]
 
+        # Apply genre_weights to boost/penalize genres based on implicit preferences
+        if preferences and preferences.genre_weights:
+            for idx, book in enumerate(all_books):
+                if book.genre in preferences.genre_weights:
+                    # Scale similarity by genre weight
+                    # 0.2 (1-star) → multiply by 0.2 (penalize heavily)
+                    # 0.6 (3-star) → multiply by 0.6 (slight penalty)
+                    # 1.0 (5-star) → multiply by 1.0 (no change)
+                    similarities[idx] *= preferences.genre_weights[book.genre]
+
         # Zero out already-borrowed books
         for idx in borrowed_indices:
             similarities[idx] = -1.0
@@ -148,28 +158,31 @@ class RecommendationService:
         review_map = {r.book_id: r.rating for r in reviews}
 
         genre_weights: dict[str, float] = {}
+        genre_counts: dict[str, int] = {}
+
         for borrow in borrows:
             # Fetch the book to get its genre
             book = await self.book_repo.get_by_id(borrow.book_id)
             if not book:
                 continue
 
-            # Base weight from borrowing
-            weight = 1.0
-            # Boost by rating if reviewed
+            # Use rating to determine weight (absolute scale 0-1)
             if borrow.book_id in review_map:
-                weight = review_map[borrow.book_id] / 3.0  # Normalize around neutral
+                # Rating-based weight: 1 star = 0.2, 3 stars = 0.6, 5 stars = 1.0
+                weight = review_map[borrow.book_id] / 5.0
+            else:
+                # Unrated books get neutral weight
+                weight = 0.6
 
             genre_weights[book.genre] = genre_weights.get(book.genre, 0.0) + weight
+            genre_counts[book.genre] = genre_counts.get(book.genre, 0) + 1
 
-        # Normalize weights
+        # Average weights per genre (instead of normalizing to max)
         if genre_weights:
-            max_weight = max(genre_weights.values())
-            if max_weight > 0:
-                genre_weights = {
-                    genre: round(w / max_weight, 3)
-                    for genre, w in genre_weights.items()
-                }
+            genre_weights = {
+                genre: round(genre_weights[genre] / genre_counts[genre], 3)
+                for genre in genre_weights.keys()
+            }
 
         preferences.genre_weights = genre_weights
         await self.pref_repo.update(preferences)

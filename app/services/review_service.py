@@ -14,6 +14,7 @@ from app.repositories.book_repository import BookRepository
 from app.repositories.borrow_repository import BorrowRepository
 from app.repositories.review_repository import ReviewRepository
 from app.schemas.review import BookAnalysisResponse, ReviewCreate, ReviewResponse
+from app.services.recommendation_service import RecommendationService
 from app.workers.review_analysis import update_review_consensus
 
 logger = structlog.get_logger()
@@ -60,6 +61,10 @@ class ReviewService:
             review_text=data.review_text,
         )
         review = await self.review_repo.create(review)
+
+        # Update implicit preferences based on the new rating
+        rec_service = RecommendationService(self.session)
+        await rec_service.update_implicit_preferences(user_id)
 
         # Commit to ensure review is available for background task
         await self.session.commit()

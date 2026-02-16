@@ -1,8 +1,10 @@
+"""Authentication API routes."""
 from fastapi import APIRouter, Depends
 from fastapi.security import OAuth2PasswordRequestForm
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.config import Settings
+from app.controllers.auth_controller import AuthController
 from app.core.database import get_db
 from app.core.dependencies import get_current_user, get_settings, oauth2_scheme
 from app.models.user import User
@@ -14,7 +16,6 @@ from app.schemas.auth import (
     UserProfileResponse,
 )
 from app.schemas.common import MessageResponse
-from app.services.auth_service import AuthService
 
 router = APIRouter()
 
@@ -26,8 +27,8 @@ async def signup(
     settings: Settings = Depends(get_settings),
 ) -> UserProfileResponse:
     """Register a new user account."""
-    service = AuthService(session, settings)
-    return await service.signup(data)
+    controller = AuthController(session, settings)
+    return await controller.signup(data)
 
 
 @router.post("/login", response_model=TokenResponse)
@@ -37,9 +38,9 @@ async def login(
     settings: Settings = Depends(get_settings),
 ) -> TokenResponse:
     """Authenticate and receive a JWT access token."""
-    service = AuthService(session, settings)
+    controller = AuthController(session, settings)
     data = LoginRequest(email=form_data.username, password=form_data.password)
-    return await service.login(data)
+    return await controller.login(data)
 
 
 @router.post("/signout", response_model=MessageResponse)
@@ -50,9 +51,8 @@ async def signout(
     settings: Settings = Depends(get_settings),
 ) -> MessageResponse:
     """Revoke the current JWT token."""
-    service = AuthService(session, settings)
-    await service.signout(token, current_user.id)
-    return MessageResponse(message="Successfully signed out")
+    controller = AuthController(session, settings)
+    return await controller.signout(token, current_user.id)
 
 
 @router.get("/profile", response_model=UserProfileResponse)
@@ -62,8 +62,8 @@ async def get_profile(
     settings: Settings = Depends(get_settings),
 ) -> UserProfileResponse:
     """Get the current user's profile and preferences."""
-    service = AuthService(session, settings)
-    return await service.get_profile(current_user.id)
+    controller = AuthController(session, settings)
+    return await controller.get_profile(current_user)
 
 
 @router.put("/profile", response_model=UserProfileResponse)
@@ -74,5 +74,5 @@ async def update_profile(
     settings: Settings = Depends(get_settings),
 ) -> UserProfileResponse:
     """Update the current user's profile and preferences."""
-    service = AuthService(session, settings)
-    return await service.update_profile(current_user.id, data)
+    controller = AuthController(session, settings)
+    return await controller.update_profile(current_user, data)

@@ -3,15 +3,15 @@ from uuid import UUID
 from fastapi import APIRouter, BackgroundTasks, Depends, Form, Query, UploadFile
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.config import Settings
+from app.controllers.book_controller import BookController
+from app.controllers.borrow_controller import BorrowController
 from app.core.database import get_db
-from app.core.dependencies import get_current_user, get_storage_backend
-from app.interfaces.storage import StorageBackend
+from app.core.dependencies import get_current_user, get_settings
 from app.models.user import User
 from app.schemas.book import BookCreate, BookResponse, BookUpdate
 from app.schemas.borrow import BorrowResponse
 from app.schemas.common import MessageResponse, PaginatedResponse
-from app.services.book_service import BookService
-from app.services.borrow_service import BorrowService
 
 router = APIRouter()
 
@@ -28,10 +28,10 @@ async def create_book(
     background_tasks: BackgroundTasks = BackgroundTasks(),
     current_user: User = Depends(get_current_user),
     session: AsyncSession = Depends(get_db),
-    storage: StorageBackend = Depends(get_storage_backend),
+    settings: Settings = Depends(get_settings),
 ) -> BookResponse:
     """Upload a book file (PDF/TXT) with metadata. Triggers async summarization."""
-    service = BookService(session, storage, background_tasks)
+    controller = BookController(session, settings, background_tasks)
     data = BookCreate(
         title=title,
         author=author,
@@ -40,12 +40,7 @@ async def create_book(
         description=description,
         total_copies=total_copies,
     )
-    return await service.create_book(
-        data=data,
-        file_content=file.file,
-        file_name=file.filename or "unknown",
-        content_type=file.content_type or "application/octet-stream",
-    )
+    return await controller.upload_book(file, data, current_user)
 
 
 @router.get("", response_model=PaginatedResponse[BookResponse])
@@ -55,11 +50,11 @@ async def list_books(
     background_tasks: BackgroundTasks = BackgroundTasks(),
     current_user: User = Depends(get_current_user),
     session: AsyncSession = Depends(get_db),
-    storage: StorageBackend = Depends(get_storage_backend),
+    settings: Settings = Depends(get_settings),
 ) -> PaginatedResponse[BookResponse]:
     """List all books with pagination."""
-    service = BookService(session, storage, background_tasks)
-    return await service.list_books(page=page, page_size=page_size)
+    controller = BookController(session, settings, background_tasks)
+    return await controller.list_books(skip=(page - 1) * page_size, limit=page_size)
 
 
 @router.get("/{book_id}", response_model=BookResponse)
@@ -68,11 +63,11 @@ async def get_book(
     background_tasks: BackgroundTasks = BackgroundTasks(),
     current_user: User = Depends(get_current_user),
     session: AsyncSession = Depends(get_db),
-    storage: StorageBackend = Depends(get_storage_backend),
+    settings: Settings = Depends(get_settings),
 ) -> BookResponse:
     """Get a single book by ID."""
-    service = BookService(session, storage, background_tasks)
-    return await service.get_book(book_id)
+    controller = BookController(session, settings, background_tasks)
+    return await controller.get_book(book_id)
 
 
 @router.put("/{book_id}", response_model=BookResponse)
@@ -82,11 +77,11 @@ async def update_book(
     background_tasks: BackgroundTasks = BackgroundTasks(),
     current_user: User = Depends(get_current_user),
     session: AsyncSession = Depends(get_db),
-    storage: StorageBackend = Depends(get_storage_backend),
+    settings: Settings = Depends(get_settings),
 ) -> BookResponse:
     """Update book metadata."""
-    service = BookService(session, storage, background_tasks)
-    return await service.update_book(book_id, data)
+    controller = BookController(session, settings, background_tasks)
+    return await controller.update_book(book_id, data)
 
 
 @router.delete("/{book_id}", response_model=MessageResponse)
@@ -95,12 +90,11 @@ async def delete_book(
     background_tasks: BackgroundTasks = BackgroundTasks(),
     current_user: User = Depends(get_current_user),
     session: AsyncSession = Depends(get_db),
-    storage: StorageBackend = Depends(get_storage_backend),
+    settings: Settings = Depends(get_settings),
 ) -> MessageResponse:
     """Delete a book and its associated file."""
-    service = BookService(session, storage, background_tasks)
-    await service.delete_book(book_id)
-    return MessageResponse(message="Book deleted successfully")
+    controller = BookController(session, settings, background_tasks)
+    return await controller.delete_book(book_id)
 
 
 @router.post("/{book_id}/borrow", response_model=BorrowResponse, status_code=201)
@@ -110,8 +104,8 @@ async def borrow_book(
     session: AsyncSession = Depends(get_db),
 ) -> BorrowResponse:
     """Borrow a book. User must not already have an active borrow for this book."""
-    service = BorrowService(session)
-    return await service.borrow_book(current_user.id, book_id)
+    controller = BorrowController(session)
+    return await controller.borrow_book(current_user, book_id)
 
 
 @router.post("/{book_id}/return", response_model=BorrowResponse)
@@ -121,5 +115,5 @@ async def return_book(
     session: AsyncSession = Depends(get_db),
 ) -> BorrowResponse:
     """Return a borrowed book."""
-    service = BorrowService(session)
-    return await service.return_book(current_user.id, book_id)
+    controller = BorrowController(session)
+    return await controller.return_book(current_user, book_id)

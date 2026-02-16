@@ -74,6 +74,7 @@ class BorrowService:
         book = await self.book_repo.get_for_update(book_id)
         if book:
             book.available_copies += 1
+            await self.session.flush()
 
         logger.info(
             "book_returned",
