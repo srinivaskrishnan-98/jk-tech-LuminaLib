@@ -61,8 +61,10 @@ services:
       - "11434:11434"
     environment:
       - OLLAMA_KEEP_ALIVE=30m
-      - OLLAMA_NUM_PARALLEL=4
-      - OLLAMA_MAX_LOADED_MODELS=1
+      - OLLAMA_NUM_PARALLEL=4  # Process up to 4 requests concurrently
+      - OLLAMA_MAX_LOADED_MODELS=1  # Keep model loaded in memory
+      - OLLAMA_MAX_QUEUE=20  # Allow queuing of 20 requests
+      - OLLAMA_DEBUG=false
     volumes:
       - ollama_data:/root/.ollama
     healthcheck:

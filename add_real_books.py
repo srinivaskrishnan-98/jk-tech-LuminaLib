@@ -105,10 +105,100 @@ books = [
         "isbn": "9780140449266",
         "description": "Edmond Dantès is wrongfully imprisoned, escapes, finds treasure, and exacts elaborate revenge on those who betrayed him.",
         "url": "https://www.gutenberg.org/cache/epub/1184/pg1184.txt"
+    },
+
+    # Additional Science Fiction (2 books)
+    {
+        "title": "The War of the Worlds",
+        "author": "H.G. Wells",
+        "genre": "Science Fiction",
+        "isbn": "9780141441030",
+        "description": "A groundbreaking science fiction novel about a Martian invasion of Earth, told through the eyes of an unnamed narrator in Victorian England.",
+        "url": "https://www.gutenberg.org/cache/epub/36/pg36.txt"
+    },
+    {
+        "title": "The Time Machine",
+        "author": "H.G. Wells",
+        "genre": "Science Fiction",
+        "isbn": "9780141439976",
+        "description": "A Victorian scientist invents a machine that allows him to travel through time, witnessing the far future of humanity.",
+        "url": "https://www.gutenberg.org/cache/epub/35/pg35.txt"
+    },
+
+    # Romance (2 books)
+    {
+        "title": "Pride and Prejudice",
+        "author": "Jane Austen",
+        "genre": "Romance",
+        "isbn": "9780141439518",
+        "description": "The classic tale of Elizabeth Bennet and Mr. Darcy, navigating love, pride, and social expectations in Regency England.",
+        "url": "https://www.gutenberg.org/cache/epub/1342/pg1342.txt"
+    },
+    {
+        "title": "Jane Eyre",
+        "author": "Charlotte Brontë",
+        "genre": "Romance",
+        "isbn": "9780141441146",
+        "description": "The story of an orphaned governess who finds love with her mysterious employer Mr. Rochester, while confronting secrets and moral dilemmas.",
+        "url": "https://www.gutenberg.org/cache/epub/1260/pg1260.txt"
+    },
+
+    # Adventure (2 books)
+    {
+        "title": "Treasure Island",
+        "author": "Robert Louis Stevenson",
+        "genre": "Adventure",
+        "isbn": "9780141321004",
+        "description": "Young Jim Hawkins discovers a treasure map and embarks on a perilous voyage filled with pirates, mutiny, and buried gold.",
+        "url": "https://www.gutenberg.org/cache/epub/120/pg120.txt"
+    },
+    {
+        "title": "The Call of the Wild",
+        "author": "Jack London",
+        "genre": "Adventure",
+        "isbn": "9780486264721",
+        "description": "Buck, a domesticated dog, is stolen and sold as a sled dog in the Yukon, where he must adapt to survive in the harsh wilderness.",
+        "url": "https://www.gutenberg.org/cache/epub/215/pg215.txt"
+    },
+
+    # Horror (2 books)
+    {
+        "title": "Dracula",
+        "author": "Bram Stoker",
+        "genre": "Horror",
+        "isbn": "9780141439846",
+        "description": "The iconic gothic horror novel about Count Dracula's attempt to move from Transylvania to England and the battle to stop him.",
+        "url": "https://www.gutenberg.org/cache/epub/345/pg345.txt"
+    },
+    {
+        "title": "The Strange Case of Dr Jekyll and Mr Hyde",
+        "author": "Robert Louis Stevenson",
+        "genre": "Horror",
+        "isbn": "9780141439730",
+        "description": "A London lawyer investigates strange occurrences involving his friend Dr. Jekyll and the sinister Mr. Hyde.",
+        "url": "https://www.gutenberg.org/cache/epub/43/pg43.txt"
+    },
+
+    # Literary Fiction (2 books)
+    {
+        "title": "Moby-Dick",
+        "author": "Herman Melville",
+        "genre": "Literary Fiction",
+        "isbn": "9780142437247",
+        "description": "Captain Ahab's obsessive quest for revenge against Moby Dick, the white whale that destroyed his ship and took his leg.",
+        "url": "https://www.gutenberg.org/cache/epub/2701/pg2701.txt"
+    },
+    {
+        "title": "The Picture of Dorian Gray",
+        "author": "Oscar Wilde",
+        "genre": "Literary Fiction",
+        "isbn": "9780141439570",
+        "description": "A young man sells his soul so that a portrait will age instead of him, leading to moral corruption and tragedy.",
+        "url": "https://www.gutenberg.org/cache/epub/174/pg174.txt"
     }
 ]
 
-print("Downloading and adding 10 real public domain books...")
+print("Downloading and adding 20 real public domain books...")
 print(f"Using token: {token[:10]}...\n")
 
 downloads_dir = Path("/tmp/lumina_books")
@@ -117,7 +207,7 @@ downloads_dir.mkdir(exist_ok=True)
 for i, book in enumerate(books, 1):
     try:
         # Download the book
-        print(f"[{i}/10] Downloading: {book['title']}...", end=" ", flush=True)
+        print(f"[{i}/20] Downloading: {book['title']}...", end=" ", flush=True)
         book_response = requests.get(book["url"], timeout=30)
         if book_response.status_code != 200:
             print(f"✗ Failed to download (HTTP {book_response.status_code})")
@@ -160,5 +250,5 @@ for i, book in enumerate(books, 1):
 print(f"\n✓ Book addition complete!")
 print(f"\nBooks downloaded to: {downloads_dir}")
 print("\nNote: AI summarization is running in the background with 10-minute timeout per book.")
-print("This may take 30-60 minutes for all 10 books to complete.")
+print("With optimizations, this may take 10-30 minutes for all 20 books to complete.")
 print("\nMonitor progress with: docker compose logs -f api | grep -E '(ollama_|consensus_|summarization)' ")

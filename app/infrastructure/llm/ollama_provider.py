@@ -61,8 +61,11 @@ class OllamaProvider(LLMProvider):
                         "prompt": prompt,
                         "stream": True,  # Enable streaming to avoid timeout
                         "options": {
-                            "num_predict": 1000,
-                            "temperature": 0.7,
+                            "num_predict": 800,  # Reduced from 1000 for faster generation
+                            "temperature": 0.5,  # Lower temp = more focused, faster
+                            "num_ctx": 4096,  # Context window
+                            "num_batch": 512,  # Process more tokens at once
+                            "num_gpu": 1,  # Use GPU if available
                         },
                     },
                 ) as response:
@@ -90,10 +93,27 @@ class OllamaProvider(LLMProvider):
 
     async def generate_summary(self, text: str, max_length: int = 500) -> str:
         logger.info("ollama_summarizing", model=self.model, text_length=len(text))
-        # Truncate to 3000 chars to ensure completion within Ollama's 2-minute timeout
-        # This is a reasonable sample for generating meaningful book summaries
-        truncated = text[:3000] if len(text) > 3000 else text
-        prompt = SUMMARIZE_PROMPT.format(text=truncated, max_length=max_length)
+
+        # Smart sampling strategy for large books
+        if len(text) > 10000:
+            # For large books: sample beginning (40%), middle (30%), end (30%)
+            chunk_size = 3000
+            start = text[:int(chunk_size * 1.33)]  # ~4000 chars from start
+
+            mid_point = len(text) // 2
+            mid_start = max(0, mid_point - chunk_size // 2)
+            middle = text[mid_start:mid_start + chunk_size]
+
+            end_start = max(0, len(text) - chunk_size)
+            end = text[end_start:]
+
+            sampled_text = f"{start}\n\n[...middle section...]\n\n{middle}\n\n[...final section...]\n\n{end}"
+            logger.info("ollama_using_smart_sampling", original_length=len(text), sampled_length=len(sampled_text))
+        else:
+            # For smaller books: use first 8000 chars (more context)
+            sampled_text = text[:8000] if len(text) > 8000 else text
+
+        prompt = SUMMARIZE_PROMPT.format(text=sampled_text, max_length=max_length)
         return await self._call_llm(prompt)
 
     async def analyze_sentiment(self, text: str) -> dict:
