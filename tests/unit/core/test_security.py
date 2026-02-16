@@ -1,7 +1,7 @@
 import pytest
 
 from app.config import Settings
-from app.core.exceptions import UnauthorizedException
+from app.core.exceptions import UnauthorizedError
 from app.core.security import (
     create_access_token,
     decode_access_token,
@@ -59,7 +59,7 @@ class TestJWT:
 
     def test_decode_invalid_token_raises(self) -> None:
         settings = get_settings()
-        with pytest.raises(UnauthorizedException):
+        with pytest.raises(UnauthorizedError):
             decode_access_token("invalid-token", settings)
 
     def test_decode_token_with_wrong_secret_raises(self) -> None:
@@ -69,7 +69,7 @@ class TestJWT:
             JWT_SECRET_KEY="wrong-secret",
             DATABASE_URL="sqlite+aiosqlite:///./test.db",
         )
-        with pytest.raises(UnauthorizedException):
+        with pytest.raises(UnauthorizedError):
             decode_access_token(token, wrong_settings)
 
     def test_token_contains_extra_claims(self) -> None:

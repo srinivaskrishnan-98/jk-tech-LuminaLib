@@ -7,13 +7,12 @@ RUN apt-get update \
     && apt-get install -y --no-install-recommends build-essential curl \
     && rm -rf /var/lib/apt/lists/*
 
-# Install Python dependencies
-COPY pyproject.toml ./
-RUN pip install --no-cache-dir . \
-    && pip install --no-cache-dir ".[dev]"
-
 # Copy application code
 COPY . .
+
+# Install Python dependencies
+RUN pip install --no-cache-dir . \
+    && pip install --no-cache-dir ".[dev]"
 
 # Create uploads directory for local storage
 RUN mkdir -p /app/uploads

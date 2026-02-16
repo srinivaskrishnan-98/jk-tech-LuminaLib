@@ -5,15 +5,16 @@ from fastapi import BackgroundTasks
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.exceptions import (
-    AlreadyReviewedException,
-    BookNotFoundException,
-    MustBorrowBeforeReviewException,
+    AlreadyReviewedError,
+    BookNotFoundError,
+    MustBorrowBeforeReviewError,
 )
 from app.models.review import Review
 from app.repositories.book_repository import BookRepository
 from app.repositories.borrow_repository import BorrowRepository
 from app.repositories.review_repository import ReviewRepository
 from app.schemas.review import BookAnalysisResponse, ReviewCreate, ReviewResponse
+from app.services.recommendation_service import RecommendationService
 from app.workers.review_analysis import update_review_consensus
 
 logger = structlog.get_logger()
@@ -40,17 +41,17 @@ class ReviewService:
         # Verify book exists
         book = await self.book_repo.get_by_id(book_id)
         if not book:
-            raise BookNotFoundException(book_id)
+            raise BookNotFoundError(book_id)
 
         # Enforce: must have borrowed the book
         has_borrowed = await self.borrow_repo.has_ever_borrowed(user_id, book_id)
         if not has_borrowed:
-            raise MustBorrowBeforeReviewException()
+            raise MustBorrowBeforeReviewError()
 
         # Enforce: one review per user per book
         existing = await self.review_repo.get_by_user_and_book(user_id, book_id)
         if existing:
-            raise AlreadyReviewedException()
+            raise AlreadyReviewedError()
 
         # Create review
         review = Review(
@@ -60,6 +61,13 @@ class ReviewService:
             review_text=data.review_text,
         )
         review = await self.review_repo.create(review)
+
+        # Update implicit preferences based on the new rating
+        rec_service = RecommendationService(self.session)
+        await rec_service.update_implicit_preferences(user_id)
+
+        # Commit to ensure review is available for background task
+        await self.session.commit()
 
         # Trigger async consensus update
         self.background_tasks.add_task(update_review_consensus, book_id)
@@ -76,7 +84,7 @@ class ReviewService:
         """Get GenAI-aggregated review analysis for a book."""
         book = await self.book_repo.get_by_id(book_id)
         if not book:
-            raise BookNotFoundException(book_id)
+            raise BookNotFoundError(book_id)
 
         total_reviews = await self.review_repo.count_for_book(book_id)
         avg_rating = await self.review_repo.get_average_rating(book_id)

@@ -6,10 +6,14 @@ from uuid import uuid4
 import pytest
 import pytest_asyncio
 from httpx import ASGITransport, AsyncClient
+from sqlalchemy.dialects.sqlite.base import SQLiteTypeCompiler
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
 
 from app.config import Settings
 from app.core.database import get_db
+
+# Register JSONB as JSON for SQLite (used in tests)
+SQLiteTypeCompiler.visit_JSONB = lambda self, type_, **kw: "JSON"
 from app.core.dependencies import (
     get_current_user,
     get_llm_provider,

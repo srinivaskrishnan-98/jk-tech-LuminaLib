@@ -2,7 +2,7 @@ import pytest
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.config import Settings
-from app.core.exceptions import InvalidCredentialsException, UserAlreadyExistsException
+from app.core.exceptions import InvalidCredentialsError, UserAlreadyExistsError
 from app.schemas.auth import LoginRequest, SignupRequest
 from app.services.auth_service import AuthService
 
@@ -39,7 +39,7 @@ class TestAuthServiceSignup:
             username="differentuser",
             password="SecurePass123",
         )
-        with pytest.raises(UserAlreadyExistsException):
+        with pytest.raises(UserAlreadyExistsError):
             await service.signup(data)
 
     async def test_signup_duplicate_username_raises(
@@ -51,7 +51,7 @@ class TestAuthServiceSignup:
             username="testuser",  # Same as test_user
             password="SecurePass123",
         )
-        with pytest.raises(UserAlreadyExistsException):
+        with pytest.raises(UserAlreadyExistsError):
             await service.signup(data)
 
 
@@ -67,11 +67,11 @@ class TestAuthServiceLogin:
     async def test_login_wrong_password_raises(self, db_session: AsyncSession, test_user) -> None:
         service = AuthService(db_session, get_settings())
         data = LoginRequest(email="test@example.com", password="WrongPassword")
-        with pytest.raises(InvalidCredentialsException):
+        with pytest.raises(InvalidCredentialsError):
             await service.login(data)
 
     async def test_login_nonexistent_user_raises(self, db_session: AsyncSession) -> None:
         service = AuthService(db_session, get_settings())
         data = LoginRequest(email="nobody@example.com", password="Password123")
-        with pytest.raises(InvalidCredentialsException):
+        with pytest.raises(InvalidCredentialsError):
             await service.login(data)

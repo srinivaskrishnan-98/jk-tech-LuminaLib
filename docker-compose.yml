@@ -14,6 +14,8 @@ services:
         condition: service_healthy
       minio:
         condition: service_healthy
+      ollama-pull:
+        condition: service_completed_successfully
     volumes:
       - upload_data:/app/uploads
     restart: unless-stopped
@@ -57,11 +59,31 @@ services:
     image: ollama/ollama:latest
     ports:
       - "11434:11434"
+    environment:
+      - OLLAMA_KEEP_ALIVE=30m
+      - OLLAMA_NUM_PARALLEL=4  # Process up to 4 requests concurrently
+      - OLLAMA_MAX_LOADED_MODELS=1  # Keep model loaded in memory
+      - OLLAMA_MAX_QUEUE=20  # Allow queuing of 20 requests
+      - OLLAMA_DEBUG=false
     volumes:
       - ollama_data:/root/.ollama
-    profiles:
-      - llm
+    healthcheck:
+      test: ["CMD-SHELL", "ollama list || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 15s
     restart: unless-stopped
+
+  ollama-pull:
+    image: ollama/ollama:latest
+    depends_on:
+      ollama:
+        condition: service_healthy
+    entrypoint: ["sh", "-c", "ollama pull llama3.2"]
+    environment:
+      - OLLAMA_HOST=http://ollama:11434
+    restart: "no"
 
 volumes:
   pg_data:

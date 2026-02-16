@@ -1,5 +1,7 @@
+import asyncio
 from uuid import UUID
 
+import httpx
 import structlog
 
 from app.config import Settings
@@ -10,6 +12,34 @@ from app.infrastructure.text_extraction.extractor import TextExtractor
 from app.repositories.book_repository import BookRepository
 
 logger = structlog.get_logger()
+
+
+async def _generate_with_retry(llm, text: str, book_id: UUID, max_retries: int = 3) -> str:
+    """Generate summary with exponential backoff retry on timeout."""
+    for attempt in range(max_retries):
+        try:
+            return await llm.generate_summary(text)
+        except (httpx.TimeoutException, httpx.ReadTimeout) as e:
+            if attempt == max_retries - 1:
+                logger.error(
+                    "ollama_summary_failed_after_retries",
+                    book_id=str(book_id),
+                    attempts=max_retries,
+                )
+                raise
+
+            # Exponential backoff: 5s, 10s, 20s
+            wait_time = 5 * (2 ** attempt)
+            logger.warning(
+                "ollama_timeout_retrying",
+                book_id=str(book_id),
+                attempt=attempt + 1,
+                max_retries=max_retries,
+                wait_seconds=wait_time,
+            )
+            await asyncio.sleep(wait_time)
+
+    raise RuntimeError("Should not reach here")
 
 
 async def summarize_book(book_id: UUID) -> None:
@@ -47,8 +77,8 @@ async def summarize_book(book_id: UUID) -> None:
                 await session.commit()
                 return
 
-            # Generate summary via LLM
-            summary = await llm.generate_summary(text)
+            # Generate summary via LLM with retry logic
+            summary = await _generate_with_retry(llm, text, book_id)
 
             book.summary = summary
             book.summary_status = "completed"

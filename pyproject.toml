@@ -1,6 +1,6 @@
 [build-system]
 requires = ["setuptools>=68.0", "wheel"]
-build-backend = "setuptools.backends._legacy:_Backend"
+build-backend = "setuptools.build_meta"
 
 [project]
 name = "luminalib"
@@ -17,6 +17,7 @@ dependencies = [
     "pydantic-settings>=2.6.0",
     "python-jose[cryptography]>=3.3.0",
     "passlib[bcrypt]>=1.7.4",
+    "bcrypt==4.0.1",
     "python-multipart>=0.0.12",
     "httpx>=0.28.0",
     "aiofiles>=24.1.0",
@@ -26,6 +27,11 @@ dependencies = [
     "structlog>=24.4.0",
     "numpy>=1.26.0",
 ]
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["app*"]
+exclude = ["tests*", "alembic*"]
 
 [project.optional-dependencies]
 dev = [

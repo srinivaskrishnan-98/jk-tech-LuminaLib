@@ -4,10 +4,10 @@ import pytest
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.exceptions import (
-    AlreadyBorrowedException,
-    BookNotAvailableException,
-    BookNotFoundException,
-    NoBorrowFoundException,
+    AlreadyBorrowedError,
+    BookNotAvailableError,
+    BookNotFoundError,
+    NoBorrowFoundError,
 )
 from app.models.book import Book
 from app.services.borrow_service import BorrowService
@@ -52,7 +52,7 @@ class TestBorrowService:
 
     async def test_borrow_nonexistent_book_raises(self, db_session: AsyncSession, test_user) -> None:
         service = BorrowService(db_session)
-        with pytest.raises(BookNotFoundException):
+        with pytest.raises(BookNotFoundError):
             await service.borrow_book(test_user.id, uuid4())
 
     async def test_borrow_unavailable_book_raises(self, db_session: AsyncSession, test_user) -> None:
@@ -61,7 +61,7 @@ class TestBorrowService:
         await db_session.flush()
 
         service = BorrowService(db_session)
-        with pytest.raises(BookNotAvailableException):
+        with pytest.raises(BookNotAvailableError):
             await service.borrow_book(test_user.id, book.id)
 
     async def test_double_borrow_raises(self, db_session: AsyncSession, test_user) -> None:
@@ -69,7 +69,7 @@ class TestBorrowService:
         service = BorrowService(db_session)
 
         await service.borrow_book(test_user.id, book.id)
-        with pytest.raises(AlreadyBorrowedException):
+        with pytest.raises(AlreadyBorrowedError):
             await service.borrow_book(test_user.id, book.id)
 
     async def test_return_book_success(self, db_session: AsyncSession, test_user) -> None:
@@ -98,5 +98,5 @@ class TestBorrowService:
         book = await self._create_book(db_session)
         service = BorrowService(db_session)
 
-        with pytest.raises(NoBorrowFoundException):
+        with pytest.raises(NoBorrowFoundError):
             await service.return_book(test_user.id, book.id)

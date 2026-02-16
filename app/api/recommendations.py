@@ -1,11 +1,11 @@
 from fastapi import APIRouter, Depends, Query
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.controllers.recommendation_controller import RecommendationController
 from app.core.database import get_db
 from app.core.dependencies import get_current_user
 from app.models.user import User
 from app.schemas.recommendation import RecommendationResponse
-from app.services.recommendation_service import RecommendationService
 
 router = APIRouter()
 
@@ -17,6 +17,5 @@ async def get_recommendations(
     session: AsyncSession = Depends(get_db),
 ) -> RecommendationResponse:
     """Get ML-based book recommendations for the current user."""
-    service = RecommendationService(session)
-    books, strategy = await service.get_recommendations(current_user.id, limit=limit)
-    return RecommendationResponse(recommendations=books, strategy=strategy)
+    controller = RecommendationController(session)
+    return await controller.get_recommendations(current_user, limit=limit)

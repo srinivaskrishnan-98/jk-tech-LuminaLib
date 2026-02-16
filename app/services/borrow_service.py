@@ -5,10 +5,10 @@ import structlog
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.exceptions import (
-    AlreadyBorrowedException,
-    BookNotAvailableException,
-    BookNotFoundException,
-    NoBorrowFoundException,
+    AlreadyBorrowedError,
+    BookNotAvailableError,
+    BookNotFoundError,
+    NoBorrowFoundError,
 )
 from app.models.borrow import Borrow
 from app.repositories.book_repository import BookRepository
@@ -32,15 +32,15 @@ class BorrowService:
         # Use SELECT FOR UPDATE to prevent race conditions
         book = await self.book_repo.get_for_update(book_id)
         if not book:
-            raise BookNotFoundException(book_id)
+            raise BookNotFoundError(book_id)
 
         if book.available_copies <= 0:
-            raise BookNotAvailableException(book_id)
+            raise BookNotAvailableError(book_id)
 
         # Check for existing active borrow
         existing = await self.borrow_repo.get_active_borrow(user_id, book_id)
         if existing:
-            raise AlreadyBorrowedException(book_id)
+            raise AlreadyBorrowedError(book_id)
 
         # Decrement available copies
         book.available_copies -= 1
@@ -65,7 +65,7 @@ class BorrowService:
         """Return a borrowed book. Increments available copies."""
         borrow = await self.borrow_repo.get_active_borrow(user_id, book_id)
         if not borrow:
-            raise NoBorrowFoundException(book_id)
+            raise NoBorrowFoundError(book_id)
 
         borrow.returned_at = datetime.now(UTC)
         borrow.is_active = False
@@ -74,6 +74,7 @@ class BorrowService:
         book = await self.book_repo.get_for_update(book_id)
         if book:
             book.available_copies += 1
+            await self.session.flush()
 
         logger.info(
             "book_returned",

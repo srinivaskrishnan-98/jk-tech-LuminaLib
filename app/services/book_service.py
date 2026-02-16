@@ -7,8 +7,8 @@ from fastapi import BackgroundTasks
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.exceptions import (
-    BookNotFoundException,
-    UnsupportedFileTypeException,
+    BookNotFoundError,
+    UnsupportedFileTypeError,
 )
 from app.interfaces.storage import StorageBackend
 from app.models.book import Book
@@ -45,9 +45,10 @@ class BookService:
     ) -> BookResponse:
         """Upload a book file and create metadata. Triggers async summarization."""
         # Validate file type
-        file_ext = file_name.rsplit(".", 1)[-1].lower() if "." in file_name else ""
+        file_ext = file_name.rsplit(
+            ".", 1)[-1].lower() if "." in file_name else ""
         if file_ext not in ALLOWED_FILE_TYPES:
-            raise UnsupportedFileTypeException(file_ext)
+            raise UnsupportedFileTypeError(file_ext)
 
         logger.info("creating_book", title=data.title, file_type=file_ext)
 
@@ -70,17 +71,21 @@ class BookService:
         )
         book = await self.repo.create(book)
 
+        # Commit to ensure book is available for background task
+        await self.session.commit()
+
         # Trigger async summarization
         self.background_tasks.add_task(summarize_book, book.id)
 
-        logger.info("book_created", book_id=str(book.id), summary_status="pending")
+        logger.info("book_created", book_id=str(
+            book.id), summary_status="pending")
         return BookResponse.model_validate(book)
 
     async def get_book(self, book_id: uuid.UUID) -> BookResponse:
         """Get a single book by ID."""
         book = await self.repo.get_by_id(book_id)
         if not book:
-            raise BookNotFoundException(book_id)
+            raise BookNotFoundError(book_id)
         return BookResponse.model_validate(book)
 
     async def list_books(
@@ -105,7 +110,7 @@ class BookService:
         """Update book metadata."""
         book = await self.repo.get_by_id(book_id)
         if not book:
-            raise BookNotFoundException(book_id)
+            raise BookNotFoundError(book_id)
 
         update_data = data.model_dump(exclude_unset=True)
         for field, value in update_data.items():
@@ -114,7 +119,8 @@ class BookService:
         # Adjust available copies if total_copies changed
         if "total_copies" in update_data:
             borrowed = book.total_copies - book.available_copies
-            book.available_copies = max(0, data.total_copies - borrowed)  # type: ignore[operator]
+            book.available_copies = max(
+                0, data.total_copies - borrowed)  # type: ignore[operator]
 
         book = await self.repo.update(book)
         logger.info("book_updated", book_id=str(book_id))
@@ -124,13 +130,14 @@ class BookService:
         """Delete a book and its associated file from storage."""
         book = await self.repo.get_by_id(book_id)
         if not book:
-            raise BookNotFoundException(book_id)
+            raise BookNotFoundError(book_id)
 
         # Delete file from storage
         try:
             await self.storage.delete_file(book.file_path)
         except Exception:
-            logger.warning("file_deletion_failed", book_id=str(book_id), file_path=book.file_path)
+            logger.warning("file_deletion_failed", book_id=str(
+                book_id), file_path=book.file_path)
 
         await self.repo.delete(book)
         logger.info("book_deleted", book_id=str(book_id))
